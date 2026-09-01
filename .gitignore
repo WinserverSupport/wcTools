@@ -1,0 +1,48 @@
+# wcTools - files that must not be published
+#
+# NOTE: "describe" holds internal SSI operational notes INCLUDING a
+# cleartext share credential.  It must never enter git history, where
+# deleting it later would not remove it.  Same reasoning for the
+# internal design notes.
+
+# Internal SSI notes -- credentials, host topology, planning
+describe
+describe.bak
+reorg-cleanup-design.md
+wctools-files-list.txt
+
+# Qedit / bcopy versioned backups
+*.1
+*.2
+*.3
+*.bak
+*.ssi
+*.orig
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# wcPAPI distribution: shipped inside wcTools.zip, but the package
+# itself lives in its own repo (WinserverSupport/wcPython).  Binaries
+# do not belong in this history.
+dist/
+*.whl
+*.tar.gz
+
+# Local output and scratch
+*.log
+*.tmp
+*.smtp
+testmail/
+*.reject.*
+*.smtpfilter.metadata
+
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

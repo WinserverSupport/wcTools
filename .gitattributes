@@ -1,0 +1,17 @@
+# wcTools is a Windows / Wildcat! project: CRLF, 7-bit ASCII.
+# Force CRLF on checkout everywhere so FILE_ID.DIZ stays valid for BBS
+# file listings and the sources match the rest of the platform.
+
+* text=auto eol=crlf
+
+*.py   text eol=crlf
+*.cmd  text eol=crlf
+*.md   text eol=crlf
+*.txt  text eol=crlf
+*.DIZ  text eol=crlf
+
+# Never touch these if they are ever added
+*.whl  binary
+*.gz   binary
+*.zip  binary
+*.png  binary
