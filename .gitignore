@@ -33,7 +33,12 @@ dist/
 *.whl
 *.tar.gz
 
+# Built distribution archive
+wctools.zip
+*.zip
+
 # Local output and scratch
+foo*
 *.log
 *.tmp
 *.smtp
