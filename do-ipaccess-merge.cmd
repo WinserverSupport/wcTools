@@ -1,5 +1,5 @@
 @echo off
-REM do-ipaccess-merge.cmd  500.2 26.7.24
+REM do-ipaccess-merge.cmd  500.2 26.9.1
 REM
 REM Merge iptrack\*.blk and smtpcmd\learn\* abuse sources into the
 REM config\ipaccess-{proto}.dat mini-firewall files using wcipaccess.py.
@@ -49,7 +49,22 @@ REM
     if errorlevel 1 goto :eof
 
 :merge
-    py "%wctoolspath%"\wcipaccess.py merge --ipaccess config\ --iptrack iptrack\ --learn smtpcmd\learn --delete
+REM 26.9.1 - clear any stale *-new.dat BEFORE merging.
+REM
+REM :doit promotes whatever ipaccess-{proto}-new.dat it finds.  It
+REM cannot tell a file this run produced from one an earlier, aborted
+REM run left behind, so a leftover would be copied over the live
+REM firewall file -- silently replacing a current block list with an
+REM older, usually smaller one.  Deleting first means :doit can only
+REM ever see output from this run.
+    for %%p in (http smtp pop3 ftp telnet finger nntp) do (
+       if exist config\ipaccess-%%p-new.dat (
+          echo Removing stale config\ipaccess-%%p-new.dat from an earlier run
+          del /q config\ipaccess-%%p-new.dat
+       )
+    )
+
+    py "%wctoolspath%\wcipaccess.py" merge --ipaccess config\ --iptrack iptrack\ --learn smtpcmd\learn --delete
     if errorlevel 1 goto :eof
 
     call :doit http
