@@ -1,0 +1,95 @@
+wcTools - Wildcat! Sysop Tools
+(c) Copyright 1998-2026 Santronics Software, Inc.
+
+START HERE
+==========
+
+You have unzipped wcTools.  Nothing is installed yet and nothing on
+your system has been changed.
+
+Read README.md next.  It is a plain text file despite the .md
+extension - open it in Notepad, Qedit, or any editor.  It has the
+full instructions.  This page is only the short version.
+
+
+THE THREE STEPS
+---------------
+
+1. Install Python 3.6 or later from https://www.python.org/downloads/
+
+   On the FIRST installer screen tick:
+
+       [X] Add python.exe to PATH
+
+   That one checkbox is the most common thing to miss.  Verify from a
+   NEW command prompt:
+
+       python --version
+
+2. Install the Wildcat! Python API, included here:
+
+       pip install dist\wcpapi-10.0.500.2-py3-none-any.whl
+
+3. Check that it can reach your server:
+
+       python list-confs.py
+
+   That lists your conferences.  If you see them, you are done.
+
+
+IF STEP 3 FAILS
+---------------
+
+"Could not find the DLL file"
+    A 32/64-bit mismatch, not a missing file.  64-bit Python needs
+    wcsrv2x64.dll, 32-bit Python needs wcsrv2.dll, and the matching
+    one must be on your PATH.  Check with:
+
+        where wcsrv2x64.dll
+
+"python is not recognized"
+    Step 1's checkbox was missed.  Re-run the Python installer and
+    choose Modify, or add the Python folder to your PATH by hand.
+
+See the README for the longer explanation of both.
+
+
+WHERE TO PUT THIS FOLDER
+------------------------
+
+Anywhere outside your Wildcat! directory.  The convention used in the
+documentation is:
+
+    c:\local\wcTools
+
+Keeping it out of \wcat means AutoUpdate never has to reason about
+files it did not install.
+
+
+WHAT IS HERE
+------------
+
+Every tool responds to -h or /? for its options, for example:
+
+    python wcat-listmail.py -h
+
+README.md lists them all by category.  The ones sysops usually want
+first:
+
+    wcipaccess.py + do-ipaccess-merge.cmd
+                          merge iptrack .BLK blocks into the
+                          permanent config\ipaccess-*.dat firewall
+    wcat-trace.py         follow one SMTP message end to end
+                          through the mail system logs
+    wcat-listmail.py      list and filter message headers
+    Show-User-Access.py   what a user can actually access
+
+These are plain Python source.  Read anything you are unsure about
+before running it.
+
+
+SUPPORT
+-------
+
+Wildcat! support conferences on winserver.com
+https://github.com/WinserverSupport/wcTools

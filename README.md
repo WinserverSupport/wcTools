@@ -62,8 +62,15 @@ matches itself.
 
 ## Step 2 - install wcPAPI
 
-The Python installer includes `pip`, so nothing extra is needed.  From
-the `dist\` folder in this zip:
+The Python installer includes `pip`, so nothing extra is needed.
+
+**If you cloned this from GitHub** there is no `dist\` folder - the
+wcPAPI package is not kept in this repository.  Get it from the
+wcTools.zip download on winserver.com, or from its own repository:
+
+    https://github.com/WinserverSupport/wcPython
+
+Otherwise, from the `dist\` folder in the zip:
 
     pip install wcpapi-10.0.500.2-py3-none-any.whl
 
