@@ -7,4 +7,4 @@ files, areas, groups and user access,
 replay spool messages, manage IP access.
 Needs Python 3.6+; wcPAPI included.
 (c) 1998-2026 Santronics Software, Inc.
-https://github.com/WinserverSupport
+github.com/WinserverSupport/wcTools
