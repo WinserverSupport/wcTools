@@ -12,9 +12,19 @@ can read before running it.
 
 ## What you need
 
-  * Windows, with a Wildcat! v8 or v10 server you administer
+  * Windows, with a Wildcat! server you administer, running
+    **wcsrv2.dll 10.0.500.3 or later**
   * Python 3.6 or later (3.11 recommended)
   * The wcPAPI package (included in this zip, under `dist\`)
+
+The wcsrv2.dll requirement is not cosmetic.  wcPAPI binds every SDK
+export at import time, so an older DLL missing a newer function fails
+at `import wcpapi` rather than at the call, and every tool stops with
+an error naming a function you have never heard of.  If you see
+
+    AttributeError: function 'WcFreeMemory' not found
+
+your wcsrv2.dll predates this release.
 
 You do NOT need a compiler, Visual Studio, or admin rights beyond what
 installing Python requires.
@@ -72,16 +82,16 @@ wcTools.zip download on winserver.com, or from its own repository:
 
 Otherwise, from the `dist\` folder in the zip:
 
-    pip install wcpapi-10.0.500.2-py3-none-any.whl
+    pip install wcpapi-10.0.500.3-py3-none-any.whl
 
 If `pip` is not recognized, use the equivalent form, which always works
 when `python` itself is on your PATH:
 
-    python -m pip install wcpapi-10.0.500.2-py3-none-any.whl
+    python -m pip install wcpapi-10.0.500.3-py3-none-any.whl
 
 or from source:
 
-    pip install wcpapi-10.0.500.2.tar.gz
+    pip install wcpapi-10.0.500.3.tar.gz
 
 Verify:
 

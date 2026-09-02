@@ -1,10 +1,10 @@
-wcTools 10.0.500.2 - Wildcat! Sysop Tools
-Command-line tools for Wildcat! v8/v10
-sysops, in Python on the wcPAPI SDK.
-Trace SMTP mail end to end through the
-logs, audit smtpfilter rules, list mail,
-files, areas, groups and user access,
-replay spool messages, manage IP access.
-Needs Python 3.6+; wcPAPI included.
-(c) 1998-2026 Santronics Software, Inc.
-github.com/WinserverSupport/wcTools
+wcTools 10.0.500.3 - Wildcat! Sysop Tools
+Command-line tools for Wildcat! sysops,
+in Python on the wcPAPI SDK. Trace SMTP
+mail end to end through the logs, audit
+smtpfilter rules, list mail, files, areas,
+groups and user access, replay spool
+messages, manage IP access.
+Needs wcsrv2.dll 10.0.500.3+, Python 3.6+
+wcPAPI included. (c) 1998-2026 Santronics
+Software Inc. github.com/WinserverSupport

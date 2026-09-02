@@ -28,7 +28,7 @@ THE THREE STEPS
 
 2. Install the Wildcat! Python API, included here:
 
-       pip install dist\wcpapi-10.0.500.2-py3-none-any.whl
+       pip install dist\wcpapi-10.0.500.3-py3-none-any.whl
 
 3. Check that it can reach your server:
 
