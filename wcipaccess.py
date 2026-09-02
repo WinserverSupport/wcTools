@@ -66,7 +66,12 @@ import sys
 import argparse
 from datetime import datetime
 
-VERSION = "1.6"
+## Revision History:
+##   1.7  09/02/26  -h now shows every argument, both subcommands, plus
+##                  worked examples and the .blk lifecycle notes.
+##                  "merge -h" / "report -h" still give the narrow view.
+
+VERSION = "1.7"
 
 
 # ------------------------------------------------------------------
@@ -495,15 +500,80 @@ def do_report(args):
 # main
 # ------------------------------------------------------------------
 
+class FullHelpParser(argparse.ArgumentParser):
+    """ArgumentParser whose -h also prints each subcommand's options.
+
+    By default argparse hides subcommand arguments behind a second
+    "<prog> <mode> -h", so a sysop meeting this tool has to ask three
+    times to see what it can do.  For a two-mode tool that is friction
+    with no benefit, so -h shows everything at once.  "merge -h" and
+    "report -h" still work for the narrow view.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self._subcommands = []
+        argparse.ArgumentParser.__init__(self, *args, **kwargs)
+
+    def track_sub(self, sub_parser):
+        self._subcommands.append(sub_parser)
+        return sub_parser
+
+    def format_help(self):
+        text = argparse.ArgumentParser.format_help(self)
+        for p in self._subcommands:
+            text += "\n" + ("-" * 70) + "\n"
+            text += p.format_help()
+        return text
+
+
+EXAMPLES = """
+examples:
+
+  Look first -- report changes nothing:
+
+    cd \\wcat
+    wcipaccess.py report --logdir .
+    wcipaccess.py report --logdir . --since 20260801 --top 50
+
+  Merge the accumulated blocks into the permanent firewall lists.
+  This writes ipaccess-{proto}-new.dat; it does not replace the live
+  file.  Promote it yourself, or let do-ipaccess-merge.cmd do it:
+
+    wcipaccess.py merge --ipaccess config\\ --iptrack iptrack\\
+    wcipaccess.py merge --ipaccess config\\ --iptrack iptrack\\ \\
+                        --learn smtpcmd\\learn --delete
+
+  Normally you would run the batch wrapper instead, which reports,
+  waits for confirmation, then merges and promotes:
+
+    do-ipaccess-merge.cmd
+    do-ipaccess-merge.cmd /auto        (unattended, wcTaskMgr)
+
+notes:
+
+  --delete removes a .blk only AFTER its IP has been merged, so the
+  block is promoted from a temporary IP Tracking block to a permanent
+  ipaccess entry rather than lost.  Omit --delete to keep the .blk
+  files; re-merging the same IP is harmless, the merge is a set union.
+
+  Block Time 0 under wcConfig IP Tracking/Blocking tells wcServer not
+  to expire and auto-delete .blk files, so they accumulate until you
+  merge them.
+"""
+
+
 def main():
-    parser = argparse.ArgumentParser(
-        description="ipaccess-*.dat management: merge abuse sources, report offenders")
+    parser = FullHelpParser(
+        description="ipaccess-*.dat management: merge abuse sources, report offenders",
+        epilog=EXAMPLES,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--version", action="version",
         version="wcipaccess.py %s" % VERSION)
     sub = parser.add_subparsers(dest="mode")
 
-    p_merge = sub.add_parser("merge",
-        help="merge abuse sources into ipaccess-{protocol}-new.dat")
+    p_merge = parser.track_sub(sub.add_parser("merge",
+        help="merge abuse sources into ipaccess-{protocol}-new.dat",
+        description="Merge abuse sources into ipaccess-{protocol}-new.dat"))
     p_merge.add_argument("--ipaccess", required=True,
         help="Directory containing ipaccess-*.dat files (e.g. config\\)")
     p_merge.add_argument("--iptrack",
@@ -517,8 +587,10 @@ def main():
     p_merge.add_argument("--delete", action="store_true",
         help="Delete processed .blk files after merging")
 
-    p_report = sub.add_parser("report",
-        help="worst offender table from wcOnline*-ipblock and wchttp event logs")
+    p_report = parser.track_sub(sub.add_parser("report",
+        help="worst offender table from wcOnline*-ipblock and wchttp event logs",
+        description="Worst offender table from wcOnline*-ipblock and wchttp "
+                    "event logs.  Read-only: changes nothing."))
     p_report.add_argument("--logdir", default=".",
         help="Directory containing the log files (default: current directory)")
     p_report.add_argument("--top", type=int, default=25,
