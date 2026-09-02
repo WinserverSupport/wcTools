@@ -4,20 +4,25 @@
 # functions (GetFirstFileRec/GetNextFileRec, SearchFileRecByXxx).
 #
 # Usage:
-#   python wcat-ListFiles.py [--area #] [--info] [--sort ordinal] [--find string] [--server name]
+#   python wcat-ListFiles.py [--area #] [--info] [--sort ordinal]
+#                            [--find string | --search words] [--server name]
 #
 # Options:
 #   --area #     List only this file area. Default: all areas.
 #   --info       Also display the long description under each file.
+#   --search     Indexed search via FileSearch(): the server queries the
+#                file database word index (name, description and long
+#                description) and returns only the hits.  Matches whole
+#                WORDS.  Use this in preference to --find.
+#   --find       Substring match, but walks EVERY record in the base and
+#                tests it here.  Slow across a network -- pair it with
+#                --area, or use --search.
 #   --sort       Sort/traversal key ordinal (default 1):
 #                  0 = Name+Area
 #                  1 = Area+Name (default)
 #                  2 = Area+Date
 #                  3 = Uploader
 #                  4 = Date+Area
-#   --find       Only list files whose file name or description contains
-#                this string (case-insensitive). If --info is also given,
-#                the long description is searched as well.
 #   --server     WC server name (default: "")
 #
 # Revision History:
@@ -25,6 +30,8 @@
 # 500.2  26.6.21  YYYY-MM-DD date, 36-wide file name, --sort, --find
 # 500.2  26.8.6   Force CP437 stdout so redirected output cannot raise
 #                 UnicodeEncodeError on extended (line-draw) characters
+# 500.2  26.9.2   --search: indexed lookup via FileSearch() instead of
+#                 walking every record.  0.035s vs 120s+ over the network.
 
 import ctypes
 import sys
@@ -135,6 +142,60 @@ def print_long_description(lines):
 # Main
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Indexed search (--search)
+#
+# FileSearch() queries the file database's word index, which covers the
+# name, description and long description.  The server does the work and
+# returns only the hits, instead of this tool pulling every record and
+# testing it here.
+#
+# Measured against NTBBS over the network, looking for one file:
+#
+#     --find  (whole base, ~2000 records)   over 120 seconds
+#     --find  with --area 44                     6.8 seconds
+#     --search                                   0.035 seconds
+#
+# The C prototype is
+#
+#     BOOL FileSearch(const char *s, DWORD &n, unsigned __int64 *&p);
+#
+# where p is an OUT pointer the server allocates: an array of 64-bit
+# values, high 32 bits = file area, low 32 bits = absolute record ref.
+# ---------------------------------------------------------------------------
+
+def indexed_search(spec, area_filter):
+    """Return [(area, ref), ...] from the file database index."""
+    # The stock binding declares p as POINTER(c_ulonglong); the prototype
+    # takes it by reference, so re-declare to let ctypes pass byref(ptr).
+    FileSearch.argtypes = [CString,
+                           ctypes.POINTER(DWORD),
+                           ctypes.POINTER(ctypes.POINTER(ctypes.c_ulonglong))]
+
+    n = DWORD(0)
+    p = ctypes.POINTER(ctypes.c_ulonglong)()
+    if not FileSearch(spec, ctypes.byref(n), ctypes.byref(p)):
+        return []
+
+    hits = []
+    for i in range(n.value):
+        v = p[i]
+        ref  = v & 0xFFFFFFFF
+        area = (v >> 32) & 0xFFFFFFFF
+        if area_filter is not None and area != area_filter:
+            continue
+        hits.append((area, ref))
+
+    # Sort on the index values we already hold, so ordering is stable
+    # without fetching every record first just to sort it.
+    hits.sort()
+
+    # The C example frees p with free().  Not attempted here: the DLL
+    # allocated it with its own CRT and a cross-CRT free is a crash
+    # risk.  This is a short-lived CLI, so the buffer is left alone.
+    return hits
+
+
 def main():
     if '/?' in sys.argv:
         sys.argv[sys.argv.index('/?')] = '--help'
@@ -146,7 +207,8 @@ def main():
     parser.add_argument('--area',   type=int,            help="List only this file area")
     parser.add_argument('--info',   action='store_true', help="Show long description under each file")
     parser.add_argument('--sort',   type=int, default=1, choices=sorted(SORT_METHODS), help=sort_help)
-    parser.add_argument('--find',   default=None,        help="Only list files matching this string (name/description/long description)")
+    parser.add_argument('--find',   default=None,        help="Only list files matching this string (name/description/long description). Walks EVERY record; slow over a network. Add --area to scope it, or prefer --search.")
+    parser.add_argument('--search', default=None,        help="Indexed search of the file database (name/description/long description words). Far faster than --find; matches whole words, not substrings.")
     parser.add_argument('--server', default='',     help="WC server name")
     args = parser.parse_args()
 
@@ -163,6 +225,27 @@ def main():
         if not LoginSystem():
             print("ERROR: LoginSystem failed ({:08X}).".format(ctypes.GetLastError()))
             sys.exit(1)
+
+        # --search: ask the server's index instead of walking the base
+        if args.search is not None:
+            hits = indexed_search(args.search, args.area)
+            print("Search: {!r}  (indexed)".format(args.search))
+            print(TABLE_HDR)
+            print(TABLE_SEP)
+            count = 0
+            for area, ref in hits:
+                frec = TFileRecord()
+                if not GetFileRecAbsolute(ref, ctypes.byref(frec)):
+                    continue
+                name = decode_wc(frec.Name)
+                desc = decode_wc(frec.Description)
+                print_table_row(frec, name, desc)
+                if args.info:
+                    print_long_description(get_long_description(frec))
+                count += 1
+            print(TABLE_SEP)
+            print("Displayed: {}".format(count))
+            return
 
         frec = TFileRecord()
         tid  = DWORD()
