@@ -190,9 +190,27 @@ def indexed_search(spec, area_filter):
     # without fetching every record first just to sort it.
     hits.sort()
 
-    # The C example frees p with free().  Not attempted here: the DLL
-    # allocated it with its own CRT and a cross-CRT free is a crash
-    # risk.  This is a short-lived CLI, so the buffer is left alone.
+    # Not freed here, deliberately.  Ownership, traced 2026-09-02:
+    #
+    #   SERVER  wcServer\wcsdbf.cpp WcsFileSearch() mallocs into the
+    #           [ref][out] parameter.  Once the RPC server stub has
+    #           marshalled the reply it releases that pointer through
+    #           midl_user_free (wcServer\wcsrv.cpp:785, = free), matching
+    #           the malloc.  This happens inside wcserver.exe whatever
+    #           the client does, so a client that never frees CANNOT
+    #           leak server memory -- local or remote, the server is
+    #           always a separate process.
+    #
+    #   CLIENT  the RPC client stub allocates the receive buffer with
+    #           wcsrv2.dll's own midl_user_allocate, and the caller owns
+    #           it.  That is the free(p) in testfilesearch.cpp.
+    #
+    # So the leak is client-side only, and it is 8 bytes per hit in a
+    # process that is about to exit.  It is not freed because the SDK
+    # exports no free helper: calling the C runtime's free() from Python
+    # would cross CRT boundaries and risk a crash, which is a worse
+    # trade than a few KB in a short-lived CLI.  If wcsrv2.dll ever
+    # exports a WcFreeMemory(), call it here.
     return hits
 
 
