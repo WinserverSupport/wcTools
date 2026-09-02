@@ -164,6 +164,24 @@ def print_long_description(lines):
 # values, high 32 bits = file area, low 32 bits = absolute record ref.
 # ---------------------------------------------------------------------------
 
+def free_search_buffer(p):
+    """Release the buffer FileSearch() handed us.
+
+    wcsrv2.dll allocates it with its own CRT, so it can only be freed on
+    that side of the boundary.  WcFreeMemory() exists for exactly this
+    (wcServer\\wcsrv.cpp, 500.3) and is the only correct way to do it
+    from Python.
+
+    Guarded with getattr because wcPAPI may be newer than the installed
+    wcsrv2.dll.  Against a pre-500.3 DLL the export is absent; the
+    buffer is then left alone, which is what this tool did before the
+    function existed -- 8 bytes per hit in a process about to exit.
+    """
+    fn = globals().get('WcFreeMemory', None)
+    if fn is not None and p:
+        fn(p)
+
+
 def indexed_search(spec, area_filter):
     """Return [(area, ref), ...] from the file database index."""
     # The stock binding declares p as POINTER(c_ulonglong); the prototype
@@ -190,27 +208,34 @@ def indexed_search(spec, area_filter):
     # without fetching every record first just to sort it.
     hits.sort()
 
-    # Not freed here, deliberately.  Ownership, traced 2026-09-02:
+    free_search_buffer(p)
+
+    # Ownership, traced 2026-09-02 -- freed above by WcFreeMemory():
+    #
+    # Each process supplies its own RPC allocator pair, matched within
+    # its own CRT:
+    #
+    #   wcserver.exe   WildcatServer.cpp:131/136  malloc / free
+    #   wcsrv2.dll     wcsrv.cpp:776/785          malloc / free
+    #                  (built by wcServer\wcsrv2.vcxproj)
     #
     #   SERVER  wcServer\wcsdbf.cpp WcsFileSearch() mallocs into the
     #           [ref][out] parameter.  Once the RPC server stub has
     #           marshalled the reply it releases that pointer through
-    #           midl_user_free (wcServer\wcsrv.cpp:785, = free), matching
-    #           the malloc.  This happens inside wcserver.exe whatever
-    #           the client does, so a client that never frees CANNOT
-    #           leak server memory -- local or remote, the server is
-    #           always a separate process.
+    #           WildcatServer.cpp's midl_user_free, matching the malloc.
+    #           This happens inside wcserver.exe whatever the client
+    #           does, so a client that never frees CANNOT leak server
+    #           memory -- local or remote, the server is a separate
+    #           process.
     #
     #   CLIENT  the RPC client stub allocates the receive buffer with
     #           wcsrv2.dll's own midl_user_allocate, and the caller owns
     #           it.  That is the free(p) in testfilesearch.cpp.
     #
-    # So the leak is client-side only, and it is 8 bytes per hit in a
-    # process that is about to exit.  It is not freed because the SDK
-    # exports no free helper: calling the C runtime's free() from Python
-    # would cross CRT boundaries and risk a crash, which is a worse
-    # trade than a few KB in a short-lived CLI.  If wcsrv2.dll ever
-    # exports a WcFreeMemory(), call it here.
+    # The leak was therefore client-side only.  wcsrv2.dll 500.3 adds
+    # WcFreeMemory(), which frees on the DLL's own side of the CRT
+    # boundary -- the one thing a ctypes caller cannot do itself -- so
+    # free_search_buffer() above now closes it.
     return hits
 
 
