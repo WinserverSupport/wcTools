@@ -11,6 +11,7 @@
 # Session: MwLogin (clSessionConfig)
 # Note: Close wcConfig.exe before running (only one Makewild client at a time).
 # 500.2  2026-03-13
+# 500.3  2026-09-17 - changed WcCloseHandle(ff) to MwFindClose(ff)
 
 import sys
 import ctypes
@@ -357,7 +358,8 @@ def list_code_by_security(szSecName):
         names_oids.append((display, oid))
         if not MwFindNextFile(ff, ctypes.byref(fd)):
             break
-    WcCloseHandle(ff)
+    #WcCloseHandle(ff)
+    MwFindClose(ff)    # 500.3 fixes wcserver abort - does not work
 
     if not names_oids:
         print("  (no wcx files)")
