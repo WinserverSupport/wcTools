@@ -12,6 +12,7 @@
 # Note: Close wcConfig.exe before running (only one Makewild client at a time).
 # 500.2  2026-03-13
 # 500.3  2026-09-17 - changed WcCloseHandle(ff) to MwFindClose(ff)
+# 500.4  2026-11-22 - rights: AllowSftpAccess, AllowStelnetAccess
 
 import sys
 import ctypes
@@ -288,6 +289,8 @@ RIGHTS_OBJECTS = [
     (OBJECTID_CHANGE_EMAILADDRESS,         'ChangeEmailAddress'),
     (OBJECTID_CHANGE_SMTPFORWARD,          'ChangeSmtpForward'),
     (OBJECTID_ALLOW_CC_GROUPS,             'AllowCcGroups'),
+    (OBJECTID_ALLOW_SFTP_ACCESS,           'AllowSftpAccess'),
+    (OBJECTID_ALLOW_STELNET_ACCESS,        'AllowStelnetAccess'),
 ]
 
 def list_rights_by_security(szSecName):
