@@ -1,6 +1,6 @@
 ## File : wcipaccess.py
-## // 500.2 26.7.16
-## Version: 1.4
+## // 500.4 26.11.21
+## Version: 1.8
 ## About:
 ##
 ## Consolidated ipaccess-*.dat management tool. Replaces three scripts:
@@ -67,11 +67,13 @@ import argparse
 from datetime import datetime
 
 ## Revision History:
+##   1.8  11/21/26  report: skip truncated log lines that end right after
+##                  "BLOCK IP:" or "IP:" (IndexError on WCAWS2).
 ##   1.7  09/02/26  -h now shows every argument, both subcommands, plus
 ##                  worked examples and the .blk lifecycle notes.
 ##                  "merge -h" / "report -h" still give the narrow view.
 
-VERSION = "1.7"
+VERSION = "1.8"
 
 
 # ------------------------------------------------------------------
@@ -332,7 +334,10 @@ def scan_ipblock_logs(logdir, offenders, proto_filter, since):
                 if ' BLOCK IP: ' not in line:
                     continue
                 head, tail = line.split(' BLOCK IP: ', 1)
-                ip_str = tail.split()[0].strip()
+                fields = tail.split()
+                if not fields:        ## truncated line, no IP
+                    continue
+                ip_str = fields[0]
                 words = head.split()
                 proto = words[-2].upper() if len(words) >= 2 else '?'
                 if proto_filter and proto != proto_filter:
@@ -353,7 +358,10 @@ def scan_event_logs(logdir, pattern, source, offenders, since):
             for line in f:
                 if ' IP: ' not in line:
                     continue
-                ip_str = line.split(' IP: ')[1].split()[0].strip()
+                fields = line.split(' IP: ')[1].split()
+                if not fields:        ## truncated line, no IP
+                    continue
+                ip_str = fields[0]
                 stamp = ' '.join(line.split()[:2])
                 tally(offenders, ip_str, source, stamp, 'HTTP', since=since)
     return count
